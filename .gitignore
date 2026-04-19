@@ -1,0 +1,29 @@
+# Xcode user data
+*.xcuserstate
+xcuserdata/
+*.xcuserdatad/
+
+# Build
+build/
+DerivedData/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# SPM
+.build/
+.swiftpm/
+
+# OS
+.DS_Store
+*.swp
+*~
+
+# Data (personal financial data)
+data/
+
+# Implementation notes
+impl.txt
+
+# OMC sessions
+.omc/
