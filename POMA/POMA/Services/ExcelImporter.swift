@@ -70,18 +70,15 @@ struct ExcelImporter {
 
             guard amount > 0 else { continue }
 
-            // Duplicate check
-            let descriptor = FetchDescriptor<Transaction>(
-                predicate: #Predicate<Transaction> {
-                    $0.date == date &&
-                    $0.time == time &&
-                    $0.content == content &&
-                    $0.amount == amount &&
-                    $0.isManual == false
-                }
-            )
-            let existing = (try? context.fetchCount(descriptor)) ?? 0
-            if existing > 0 { continue }
+            if try isDuplicateTransaction(
+                date: date,
+                time: time,
+                content: content,
+                amount: amount,
+                in: context
+            ) {
+                continue
+            }
 
             let transaction = Transaction(
                 date: date,
@@ -102,24 +99,47 @@ struct ExcelImporter {
         return importedCount
     }
 
-    private static func cellValues(row: Row, sharedStrings: SharedStrings) -> [String] {
+    private static func cellValues(row: Row, sharedStrings: SharedStrings?) -> [String] {
         // Build a dictionary of column index → value
         var dict: [Int: String] = [:]
         for cell in row.cells {
-            guard let ref = cell.reference.column.value,
-                  let colIndex = columnIndex(from: ref) else { continue }
-            let value: String
-            if cell.type == .sharedString,
-               let index = cell.value.flatMap({ Int($0) }) {
-                value = sharedStrings.items[index].text ?? ""
-            } else {
-                value = cell.value ?? ""
-            }
+            let ref = cell.reference.column.value
+            guard let colIndex = columnIndex(from: ref) else { continue }
+
+            let value = cellValue(cell, sharedStrings: sharedStrings)
             dict[colIndex] = value
         }
 
         let maxCol = dict.keys.max() ?? 0
         return (0...maxCol).map { dict[$0] ?? "" }
+    }
+
+    private static func cellValue(_ cell: Cell, sharedStrings: SharedStrings?) -> String {
+        if let sharedStrings {
+            return cell.stringValue(sharedStrings) ?? cell.inlineString?.text ?? ""
+        }
+
+        return cell.inlineString?.text ?? cell.value ?? ""
+    }
+
+    private static func isDuplicateTransaction(
+        date: Date,
+        time: String,
+        content: String,
+        amount: Int,
+        in context: ModelContext
+    ) throws -> Bool {
+        let predicate = #Predicate<Transaction> { transaction in
+            transaction.content == content &&
+            transaction.amount == amount &&
+            transaction.isManual == false
+        }
+        let descriptor = FetchDescriptor<Transaction>(predicate: predicate)
+        let candidates = try context.fetch(descriptor)
+
+        return candidates.contains { transaction in
+            transaction.date == date && transaction.time == time
+        }
     }
 
     private static func columnIndex(from letter: String) -> Int? {

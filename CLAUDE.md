@@ -20,8 +20,9 @@ SPM 의존성(CoreXLSX)은 Xcode가 자동 해결한다. 별도 `pod install`이
 ## Architecture
 
 - **iOS 17+ / SwiftUI / SwiftData** — 네트워크 없는 완전 오프라인 앱
-- **단일 SwiftData 모델**: `Transaction` — 카드 지출(엑셀 임포트)과 현금 지출(수동 입력)을 `isManual` 플래그로 구분
+- **단일 SwiftData 모델**: `Transaction` — 카드 지출(엑셀 임포트)과 현금 지출(수동 입력)을 `isManual` 플래그로 구분. 카테고리는 `String`으로 저장하고 computed property `spendingCategory`에서 `SpendingCategory` enum으로 매핑 (SwiftData가 커스텀 enum을 직접 저장하지 않으므로)
 - **3-Tab 구조**: 월별 지출 조회(`MonthlySpendingView`) → 현금 입력(`AddCashView`) → 설정(`SettingsView`, 엑셀 임포트)
+- **샘플 데이터**: `data/` 디렉토리에 뱅크샐러드 엑셀 내보내기 샘플 파일 존재
 
 ### 소스 구조
 
@@ -51,3 +52,5 @@ SPM 의존성(CoreXLSX)은 Xcode가 자동 해결한다. 별도 `pod install`이
 - 날짜 포맷: `yyyy-MM-dd`, 시간: `HH:mm:ss`, locale `ko_KR`
 - Swift Charts의 `SectorMark`로 도넛 차트 구현
 - 아이콘은 SF Symbols만 사용 (커스텀 이미지 에셋 없음)
+- 현금 수동 입력 시 `paymentMethod`는 항상 `"현금"`, `isManual`은 `true`
+- `@Query`로 전체 Transaction을 가져온 뒤 뷰 내에서 월별 필터링 (SwiftData `#Predicate`에서 Calendar 연산 불가로 인한 패턴)
